@@ -1,0 +1,26 @@
+# TMP Makefile
+
+CFLAGS := \
+	-m32 \
+	-Wall -Wextra -Werror \
+	-fno-builtin \
+	-fno-stack-protector \
+	-ffreestanding \
+	-fno-pie
+
+all: kfs.elf
+
+main.o: main.c include.h
+	cc $(CFLAGS) -c -I . main.c -o $@
+
+boot.o: boot.s
+	nasm -f elf32 $^ -o $@
+
+kfs.elf: boot.o main.o ../link/linker.ld
+	ld -m elf_i386 main.o boot.o -T ../link/linker.ld -o $@
+
+clean:
+	rm -rf *.o *.elf
+
+check:
+	grub-file --is-x86-multiboot2 kfs.elf
