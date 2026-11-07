@@ -5,6 +5,6 @@
 #include "types.h"
 #include "vga.h"
 
-int main(void);
+int kmain(void);
 
 #endif /* INCLUDE_H */

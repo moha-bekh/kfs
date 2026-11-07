@@ -16,6 +16,6 @@ typedef uint32_t uintptr_t;
 typedef uint8_t bool_t;
 
 #define TRUE 1
-#define FALSE 1
+#define FALSE 0
 
 #endif /* TYPES_H */

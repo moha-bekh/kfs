@@ -1,6 +1,6 @@
 #include "kfs.h"
 
-int main(void) {
+int kmain(void) {
 
   static t_console console;
   console_init(&console);

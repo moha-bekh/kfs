@@ -96,4 +96,4 @@ gdb-server: $(ISO)
 	# break _start
 	# continue
 	# info registers esp
-	# disassemble main
+	# disassemble kmain

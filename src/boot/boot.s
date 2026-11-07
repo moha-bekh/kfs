@@ -2,7 +2,7 @@ bits 32
 
 global _start
 
-extern main
+extern kmain
 
 section .multiboot align=8
 
@@ -29,7 +29,7 @@ _start:
 
   mov esp, stack_top
 
-  call main
+  call kmain
 
   .loop:
     hlt
