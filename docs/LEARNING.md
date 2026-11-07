@@ -25,12 +25,12 @@ Read my code and tell me what it does, what is likely wrong, and which measureme
 Only when explicitly authorized: implement a scoped change, explain key decisions and suggest verification steps.
 
 ## Useful question patterns
-- “Explique-moi ce mécanisme de zéro, puis relie-le à mon code.”
-- “Ne donne pas de solution : pose-moi 3 questions pour tester ma compréhension.”
-- “Donne-moi un seul indice sur la cause probable de ce bug.”
-- “Trace l'état de la pile et des registres avant/après cette instruction.”
-- “Review ce diff : bugs confirmés, hypothèses, expériences de validation. Aucun changement.”
-- “Compare ces deux designs et leurs invariants sans coder.”
+- “Explain this mechanism from scratch, then relate it to my code.”
+- “Do not give a solution: ask me three questions to test my understanding.”
+- “Give me one hint about the likely cause of this bug.”
+- “Trace the stack and register state before and after this instruction.”
+- “Review this diff: confirmed bugs, hypotheses, and validation experiments. No changes.”
+- “Compare these two designs and their invariants without coding.”
 
 ## Milestone check
 Before treating a milestone as learned, the learner should be able to:

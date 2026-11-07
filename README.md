@@ -1,39 +1,39 @@
 # KFS — Kernel From Scratch
 
-Projet pédagogique de kernel i386 en C et assembleur. Le démarrage utilise GRUB et Multiboot 2 ; l'affichage texte VGA et la console sont en cours de développement.
+An educational i386 kernel project written in C and assembly. It boots using GRUB and Multiboot 2; the VGA text display and console are under development.
 
-## Dépendances
+## Dependencies
 
-- `make`, un compilateur C capable de produire du code i386, `nasm` et GNU `ld`
-- GRUB (`grub-mkrescue`, modules `i386-pc`, `grub-file`), `xorriso` et `mtools`
-- QEMU x86 avec interface GTK ; GDB pour le débogage
+- `make`, a C compiler capable of producing i386 code, `nasm`, and GNU `ld`
+- GRUB (`grub-mkrescue`, `i386-pc` modules, `grub-file`), `xorriso`, and `mtools`
+- QEMU x86 with a GTK interface; GDB for debugging
 
-Sur Arch Linux, les paquets utilisés sont `make`, `gcc`, `binutils`, `nasm`, `grub`, `xorriso`, `mtools`, `qemu-system-x86`, `qemu-ui-gtk` et `gdb`.
+On Arch Linux, the packages used are `make`, `gcc`, `binutils`, `nasm`, `grub`, `xorriso`, `mtools`, `qemu-system-x86`, `qemu-ui-gtk`, and `gdb`.
 
-## Commandes
+## Commands
 
 ```sh
-make build            # compiler et lier build/kfs.elf
-make                  # construire l'image et lancer QEMU
-make run              # construire l'image si nécessaire et lancer QEMU
-make check-multiboot  # vérifier l'ELF déjà construit
-make gdb-server       # lancer QEMU en pause pour une connexion GDB
-make clean            # supprimer build/
-make fclean           # supprimer aussi kfs.iso
+make build            # compile and link build/kfs.elf
+make                  # build the image and run QEMU
+make run              # build the image if needed and run QEMU
+make check-multiboot  # check the existing ELF
+make gdb-server       # run QEMU paused for a GDB connection
+make clean            # remove build/
+make fclean           # also remove kfs.iso
 ```
 
-Pour déboguer, lancer `make gdb-server`, puis dans un autre terminal :
+For debugging, run `make gdb-server`, then in another terminal:
 
 ```sh
 gdb build/kfs.elf
 ```
 
-Dans GDB : `target remote localhost:1234`, puis par exemple `break _start` et `continue`.
+In GDB: `target remote localhost:1234`, then for example `break _start` and `continue`.
 
-## Organisation
+## Layout
 
-- `src/boot/` : point d'entrée assembleur et en-tête Multiboot 2
-- `src/kfs/`, `src/console/`, `src/drivers/` : kernel, console et backend VGA
-- `include/` : headers ; `link/` : linker script ; `grub/` : configuration GRUB
-- `TODO.md` : objectifs ; `docs/` : suivi et consignes d'apprentissage
-- `build/` : fichiers intermédiaires générés ; `kfs.iso` : image générée pour QEMU
+- `src/boot/`: assembly entry point and Multiboot 2 header
+- `src/kfs/`, `src/console/`, `src/drivers/`: kernel, console, and VGA backend
+- `include/`: headers; `link/`: linker script; `grub/`: GRUB configuration
+- `TODO.md`: objectives; `docs/`: progress and learning guidelines
+- `build/`: generated intermediate files; `kfs.iso`: generated QEMU image
