@@ -1,4 +1,4 @@
-.PHONY: all run build clean fclean re check-multiboot gdb-server
+.PHONY: all run build clean fclean re check-multiboot gdb-server monitor
 
 BUILD_DIR = build
 BOOT_DIR = $(BUILD_DIR)/boot
@@ -17,6 +17,16 @@ GRUB_CONFIG = grub/grub.cfg
 GRUB_MKRESCUE_FLAGS = \
 	--directory=/usr/lib/grub/i386-pc \
 	--locales= --themes= --fonts=
+
+# QEMU display backend: gtk (window), curses (in the terminal), vnc=:0, none...
+# Override possible: make run QEMU_DISPLAY=curses
+QEMU_DISPLAY ?= gtk
+# QEMU monitor reachable from another terminal: make monitor
+QEMU_MONITOR_PORT ?= 4444
+QEMU_FLAGS = \
+	-display $(QEMU_DISPLAY) \
+	-cdrom $(ISO) \
+	-monitor telnet:127.0.0.1:$(QEMU_MONITOR_PORT),server,nowait
 
 LINKER_SCRIPT = link/linker.ld
 
@@ -42,7 +52,10 @@ OBJ = \
 all: $(ISO) run
 
 run: $(ISO)
-	qemu-system-i386 -display gtk -cdrom $(ISO)
+	qemu-system-i386 $(QEMU_FLAGS)
+
+monitor:
+	telnet 127.0.0.1 $(QEMU_MONITOR_PORT)
 
 build: $(ELF)
 
@@ -77,7 +90,7 @@ fclean: clean
 re: fclean all
 
 gdb-server: $(ISO)
-	qemu-system-i386 -display gtk -cdrom $(ISO) -S -s
+	qemu-system-i386 $(QEMU_FLAGS) -S -s
 	# gdb build/kfs.elf
 	# target remote localhost:1234
 	# break _start

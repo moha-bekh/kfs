@@ -49,3 +49,68 @@ Fedora, so it was left as is.
 
 On Fedora 44: `GRUB_MKRESCUE` resolves to `/usr/bin/grub2-mkrescue`, the ISO
 builds, and `make check-multiboot` passes.
+
+---
+
+# Makefile edit — configurable QEMU display and external monitor
+
+## Problem
+
+1. `run` and `gdb-server` hardcoded `-display gtk`. In a VM without a graphical
+   session (e.g. an x86_64 OrbStack VM on an Apple Silicon Mac, where `$DISPLAY`
+   is empty) QEMU cannot open a window, so `make run` fails.
+2. With `-display curses`, the kernel's VGA text output is drawn in the
+   terminal, but QEMU then grabs the keyboard: `Ctrl+C` is forwarded to the
+   guest, and the monitor shortcut (`Alt+2`, or `Esc` then `2` typed quickly)
+   is easy to miss. Result: no obvious way to quit.
+
+## What changed
+
+1. **New variables** (next to the GRUB ones):
+
+   ```make
+   QEMU_DISPLAY ?= gtk
+   QEMU_MONITOR_PORT ?= 4444
+   QEMU_FLAGS = \
+   	-display $(QEMU_DISPLAY) \
+   	-cdrom $(ISO) \
+   	-monitor telnet:127.0.0.1:$(QEMU_MONITOR_PORT),server,nowait
+   ```
+
+   - `QEMU_DISPLAY` keeps `gtk` as default, so nothing changes on a desktop
+     machine. `?=` lets you override it: `make run QEMU_DISPLAY=curses`
+     (also `none`, `vnc=:0`, ...).
+   - `-monitor telnet:...,server,nowait` exposes the QEMU monitor on a local
+     TCP port. `server` = QEMU listens, `nowait` = the guest boots without
+     waiting for a client to connect. Bound to `127.0.0.1` only, so it is not
+     reachable from the network.
+
+2. **`run` and `gdb-server` use `$(QEMU_FLAGS)`** instead of duplicating
+   the flags. `gdb-server` only appends `-S -s` (freeze CPU at start, GDB
+   stub on `:1234`).
+
+3. **New `monitor` target**: `telnet 127.0.0.1 $(QEMU_MONITOR_PORT)`.
+
+## Usage
+
+```sh
+# terminal 1
+make run QEMU_DISPLAY=curses
+# terminal 2
+make monitor
+(qemu) xp /4bc 0xb8000     # read VGA text memory
+(qemu) info registers      # CPU state
+(qemu) sendkey shift-a     # inject a real key press/release (keyboard tests)
+(qemu) quit
+```
+
+Only one QEMU instance at a time can use a given port; run a second one with
+`QEMU_MONITOR_PORT=4445`. If the terminal looks broken after QEMU exits
+(curses), type `reset`.
+
+## Verified
+
+On Arch Linux x86_64 (OrbStack VM, no display, QEMU 11.1.3):
+`make run QEMU_DISPLAY=none`, then via the monitor port
+`xp /4bc 0xb8000` returned `'4' 0x07 '2' 0x07` ("42"), and `quit` stopped
+QEMU cleanly.
