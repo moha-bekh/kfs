@@ -30,12 +30,53 @@ QEMU_FLAGS = \
 
 LINKER_SCRIPT = link/linker.ld
 
+# KFS-1: boot, screen, helpers (+ bonus: printk, keyboard)
 C_SRC = \
 	src/kfs/main.c \
 	src/console/console.c \
-	src/drivers/vga.c
+	src/drivers/vga.c \
+	src/lib/kstring.c \
+	src/lib/printk.c \
+	src/drivers/keyboard.c
 
-ASM_SRC = src/boot/boot.s
+# KFS-2: GDT, stack (+ bonus: shell)
+C_SRC += \
+	src/cpu/gdt.c \
+	src/debug/stack.c \
+	src/shell/shell.c
+
+# KFS-3: memory (+ bonus: memdump)
+C_SRC += \
+	src/boot/multiboot.c \
+	src/mm/pmm.c \
+	src/mm/paging.c \
+	src/mm/kmalloc.c \
+	src/mm/vmalloc.c \
+	src/kfs/panic.c \
+	src/debug/memdump.c
+
+# KFS-4: interrupts (+ bonus: syscalls)
+C_SRC += \
+	src/cpu/idt.c \
+	src/cpu/exceptions.c \
+	src/drivers/pic.c \
+	src/drivers/pit.c \
+	src/kfs/signal.c \
+	src/kfs/syscall.c
+
+# KFS-5: processes
+C_SRC += \
+	src/proc/process.c \
+	src/proc/proc_signal.c \
+	src/proc/socket.c \
+	src/proc/sched.c \
+	src/proc/exec.c
+
+ASM_SRC = \
+	src/boot/boot.s \
+	src/cpu/gdt_flush.s \
+	src/cpu/isr.s \
+	src/proc/switch.s
 
 CFLAGS = \
 	-m32 \
