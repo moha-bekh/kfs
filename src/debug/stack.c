@@ -6,4 +6,4 @@
  * Unlocks: panic stack saving (KFS-4), print-kernel-stack shell command
  */
 
-#include "stack.h"
+#include "debug/stack.h"

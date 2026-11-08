@@ -6,4 +6,4 @@
  * Unlocks: physical frame allocator
  */
 
-#include "multiboot.h"
+#include "boot/multiboot.h"

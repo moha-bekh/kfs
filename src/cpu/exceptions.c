@@ -6,4 +6,4 @@
  * Unlocks: global panic fault handling
  */
 
-#include "exceptions.h"
+#include "cpu/exceptions.h"

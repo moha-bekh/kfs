@@ -5,4 +5,4 @@
  * Depends on: keyboard, console, kstring, debug/stack
  */
 
-#include "shell.h"
+#include "shell/shell.h"

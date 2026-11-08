@@ -5,4 +5,4 @@
  * Depends on: printk
  */
 
-#include "memdump.h"
+#include "debug/memdump.h"

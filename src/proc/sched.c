@@ -5,4 +5,4 @@
  * Depends on: process, pit, switch.s
  */
 
-#include "sched.h"
+#include "proc/sched.h"

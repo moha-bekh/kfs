@@ -1,5 +1,5 @@
-#include "console.h"
-#include "vga.h"
+#include "console/console.h"
+#include "drivers/vga.h"
 
 void screen_init(t_screen *screen) {
 

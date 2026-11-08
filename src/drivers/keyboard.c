@@ -6,4 +6,4 @@
  * Unlocks: shell (KFS-2 bonus), screen switching shortcuts (KFS-1 bonus)
  */
 
-#include "keyboard.h"
+#include "drivers/keyboard.h"

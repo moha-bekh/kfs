@@ -37,16 +37,17 @@ In GDB: `target remote localhost:1234`, then for example `break _start` and `con
 
 ## Layout
 
-One directory per module in `src/`, headers flat in `include/` (one per module).
+One directory per subsystem in `src/`, mirrored in `include/` (`src/mm/paging.c`
+↔ `include/mm/paging.h`, included as `"mm/paging.h"`). See `docs/ARCHITECTURE.md`.
 Every planned module of KFS-1 to KFS-5 exists as a skeleton already listed in the
 Makefile; each file's header comment states its KFS, role and dependencies.
 
 ```
 src/
   boot/      boot.s (entry, Multiboot 2 header), multiboot.c     KFS-1, 3
-  kfs/       main.c, panic.c, signal.c, syscall.c                KFS-1, 3, 4
+  kernel/    main.c (kmain), panic.c, signal.c, syscall.c        KFS-1, 3, 4
   console/   console.c (screens, scrollback)                     KFS-1
-  lib/       kstring.c, printk.c                                 KFS-1
+  lib/       string.c, printk.c                                  KFS-1
   drivers/   vga.c, keyboard.c, pic.c, pit.c                     KFS-1, 4
   cpu/       gdt.c, gdt_flush.s, idt.c, isr.s, exceptions.c      KFS-2, 4
   debug/     stack.c, memdump.c                                  KFS-2, 3
@@ -54,12 +55,14 @@ src/
   mm/        pmm.c, paging.c, kmalloc.c, vmalloc.c               KFS-3
   proc/      process.c, proc_signal.c, socket.c, sched.c,
              exec.c, switch.s                                    KFS-5
-include/     module headers, types.h, io.h (port I/O)
+include/     <subsystem>/<module>.h mirroring src/; at the root only the
+             cross-cutting types.h and io.h (port I/O)
 link/        linker.ld
 grub/        grub.cfg
 ```
 
 - `TODO.md`: objectives per KFS (extracted from the subjects)
+- `docs/ARCHITECTURE.md`: tree layout, conventions and rationale
 - `docs/ROADMAP.md`: module dependency graph and what can be started now
 - `docs/PROGRESS.md`, `docs/LEARNING.md`: progress and learning guidelines
 - `docs/MAKEFILE_EDIT.md`: history of Makefile changes

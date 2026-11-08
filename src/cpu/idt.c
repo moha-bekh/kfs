@@ -6,4 +6,4 @@
  * Unlocks: exceptions, IRQs, syscalls
  */
 
-#include "idt.h"
+#include "cpu/idt.h"

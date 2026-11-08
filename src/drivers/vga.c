@@ -1,5 +1,5 @@
-#include "vga.h"
-#include "console.h"
+#include "drivers/vga.h"
+#include "console/console.h"
 
 #define VGA_MEMORY_ADDR 0xB8000
 

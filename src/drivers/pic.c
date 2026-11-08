@@ -6,4 +6,4 @@
  * Unlocks: hardware IRQs (keyboard, timer). Can be written early, only testable once the IDT exists.
  */
 
-#include "pic.h"
+#include "drivers/pic.h"

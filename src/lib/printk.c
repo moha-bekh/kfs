@@ -6,4 +6,4 @@
  * Unlocks: stack dump (KFS-2), panic (KFS-3), exception messages (KFS-4)
  */
 
-#include "printk.h"
+#include "lib/printk.h"

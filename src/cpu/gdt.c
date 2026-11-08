@@ -6,4 +6,4 @@
  * Unlocks: IDT (gate selectors point into the GDT), user space (KFS-3/5)
  */
 
-#include "gdt.h"
+#include "cpu/gdt.h"
