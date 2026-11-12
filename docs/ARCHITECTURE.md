@@ -57,8 +57,8 @@ src/lib/string.c    ↔   include/lib/string.h    #include "lib/string.h"
 ### Include what you use (no umbrella header)
 
 Each `.c` includes exactly the headers it uses something from, and each `.h`
-includes what it needs to compile on its own (`drivers/vga.h` includes
-`console/console.h` for `t_cell`). There is deliberately no header that
+includes what it needs to compile on its own (`console/console.h` includes
+`drivers/vga.h` for `t_vga`). There is deliberately no header that
 includes everything:
 
 - with `-MMD`, an umbrella header included everywhere would make every object
@@ -83,6 +83,7 @@ previous prototype. It catches two real mistakes:
 Consequence: every non-`static` function is declared in its module's header,
 and the `.c` includes that header first. `kmain` is the edge case: only
 `boot.s` calls it, but it still gets a prototype in `kernel/kernel.h`.
+
 - Include guards are derived from the path: `include/mm/paging.h` →
   `MM_PAGING_H`. Two headers with the same file name in different
   directories then still get distinct guards.
@@ -129,7 +130,7 @@ the cheapest documentation.
 ## 3. Directory by directory
 
 | Directory | Files | Why it is separate |
-|---|---|---|
+| --- | --- | --- |
 | `boot/` | `boot.s`, `multiboot.c` | Everything that depends on *how* the kernel was booted (Multiboot 2 header, info structure from GRUB). Changing bootloader = changing only this. |
 | `kernel/` | `main.c` (`kmain`), `panic.c`, `signal.c`, `syscall.c` | Kernel-wide services that do not belong to a single subsystem. |
 | `console/` | `console.c` | Text logic: screens, cursor, scrollback. Knows nothing about VGA memory. |
@@ -151,6 +152,7 @@ the cheapest documentation.
   Keep a function that takes one byte and knows nothing about where it came
   from; only the caller changes between KFS-1 and KFS-4.
 - **`mm/` in four layers**:
+
   ```
   vmalloc / kmalloc     allocate, free, size        (what callers use)
         │
@@ -160,6 +162,7 @@ the cheapest documentation.
         │
     multiboot           memory map given by GRUB
   ```
+
   Each layer only uses the one below. A bug is then located by layer.
 - **`pic` vs `idt`**: the IDT is a CPU table; the PIC is an external chip
   that turns device lines into interrupt vectors. Different documentation,
@@ -244,7 +247,7 @@ exactly `main.o`, `console.o`, `vga.o` (the three includers) and relinks.
 ## 6. Trade-offs and alternatives
 
 | Option | Example | Pros | Cons |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | Flat `include/` (previous layout) | `#include "paging.h"` | Simple, short includes | Long flat list, globally unique names needed (`kstring.h`, `ksignal.h`) |
 | **Current**: `include/` mirrors `src/` | `#include "mm/paging.h"` | Grouping visible, path namespaces names, close to Linux (`include/linux/...`) | Longer includes; moving a module touches its includers |
 | Headers next to sources | `src/mm/paging.h` | Module = one directory | Include paths become relative or need many `-I` |

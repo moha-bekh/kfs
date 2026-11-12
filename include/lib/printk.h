@@ -5,4 +5,6 @@
 
 #include "types.h"
 
+int printk(const int8_t *format, ...);
+
 #endif /* LIB_PRINTK_H */

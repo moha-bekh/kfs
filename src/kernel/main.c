@@ -1,22 +1,22 @@
 #include "console/console.h"
 #include "drivers/vga.h"
 #include "kernel/kernel.h"
+#include "tests/console.h"
+#include "tests/output.h"
 
 int kmain(void) {
 
-  static t_console console;
-  console_init(&console);
-  console_putc(&console, (t_cell){'4', VGA_ATTR_GREY_BLACK});
-  console_putc(&console, (t_cell){'2', VGA_ATTR_GREY_BLACK});
-  console_putc(&console, (t_cell){'\n', VGA_ATTR_GREY_BLACK});
-  console_putc(&console, (t_cell){'4', VGA_ATTR_GREY_BLACK});
-  console_putc(&console, (t_cell){'2', VGA_ATTR_GREY_BLACK});
+  // KFS-1 Evaluation
 
-  // console_fill_screen(&console, 'X');
-  console_render_screen(&console);
+  t_output_test_results res = test_output_all();
+  (void)res; /* Inspect res in GDB after the suite returns. */
+  console_render_screen();
 
-  // vga_putc((t_cell){'4', 0x07}, 0, 0);
-  // vga_putc((t_cell){'2', 0x07}, 1, 0);
+  // DEV TEST
+
+  // t_console_test_results res = test_console_all(&console);
+  // (void)res;
+  // test_console_screens_visual(&console);
 
   return 0;
 }

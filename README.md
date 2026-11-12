@@ -27,15 +27,35 @@ Without a graphical session (e.g. a VM), pick another QEMU display:
 `make run QEMU_DISPLAY=curses` (VGA text in the terminal). Quit from another
 terminal with `make monitor` then `quit`. See `docs/MAKEFILE_EDIT.md`.
 
-For debugging, run `make gdb-server`, then in another terminal:
+For C source debugging, use two terminals from the project directory. With
+OrbStack, run these commands from macOS:
 
 ```sh
-gdb build/kfs.elf
+orb -m arch-kfs make debug-run  # terminal 1: rebuild with -g -O0, start paused
+orb -m arch-kfs make debug-gdb  # terminal 2: connect and stop in kmain
 ```
 
-In GDB: `target remote localhost:1234`, then for example `break _start` and `continue`.
+Inside Linux, use `make debug-run` and `make debug-gdb` directly. Debug files
+are stored in `build-debug/`, including a separate ISO. `make debug-build`
+only builds that image; it forces recompilation to ensure debug symbols exist.
+Stop QEMU before rebuilding. In GDB, use `list` and `next`. The current
+`kmain` runs `test_output_all`; after the call returns, inspect `print res`
+or `print res.all_passed`. The suite contains 21 scenarios for the console
+and printk. `make gdb-server` remains available for the regular build,
+which does not enable C debug information by default.
+
+To inspect each scenario separately, set `break output_test_case` before
+running the suite. At each stop, `print name` identifies the scenario and
+`finish` executes it and reports its result. Use `continue` for the next case.
+Use Ctrl+C if execution does not return; `bt` shows the current call stack.
 
 ## Layout
+
+Active output scenarios live in `src/tests/output.c`, with declarations in
+`include/tests/output.h`. Each case initializes the private console instance.
+Tests check rendered VGA cells, formatting and return counts. Cursor appearance
+still requires observation in QEMU. The earlier console scenarios in
+`src/tests/console.c` are retained as commented reference for the old API.
 
 One directory per subsystem in `src/`, mirrored in `include/` (`src/mm/paging.c`
 ↔ `include/mm/paging.h`, included as `"mm/paging.h"`). See `docs/ARCHITECTURE.md`.

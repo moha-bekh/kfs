@@ -34,8 +34,12 @@ LINKER_SCRIPT = link/linker.ld
 C_SRC = \
 	src/kernel/main.c \
 	src/console/console.c \
+	src/tests/console.c \
+	src/tests/output.c \
 	src/drivers/vga.c \
 	src/lib/string.c \
+	src/lib/ctype.c \
+	src/lib/stdlib.c \
 	src/lib/printk.c \
 	src/drivers/keyboard.c
 
@@ -80,11 +84,13 @@ ASM_SRC = \
 
 CFLAGS = \
 	-m32 \
+	-masm=intel \
 	-Wall -Wextra -Werror -Wmissing-prototypes \
 	-fno-builtin \
 	-fno-stack-protector \
 	-ffreestanding \
-	-fno-pie
+	-fno-pie \
+	-mgeneral-regs-only
 
 OBJ = \
 	$(patsubst src/%.c, $(BUILD_DIR)/%.o, $(C_SRC)) \
@@ -145,3 +151,23 @@ gdb-server: $(ISO)
 # Header dependencies. Kept at the end so that rules read from .d files
 # never become the default goal. "-" ignores missing .d (first build).
 -include $(DEP)
+
+# Debug workflow: keep symbols and the ISO separate from regular builds.
+.PHONY: debug-build debug-run debug-gdb
+DEBUG_BUILD_DIR = build-debug
+DEBUG_ISO = $(DEBUG_BUILD_DIR)/kfs.iso
+DEBUG_CFLAGS = $(CFLAGS) -g -O0
+
+debug-build:
+	$(MAKE) -B $(DEBUG_ISO) BUILD_DIR=$(DEBUG_BUILD_DIR) ISO=$(DEBUG_ISO) CFLAGS='$(DEBUG_CFLAGS)'
+
+debug-run: debug-build
+	$(MAKE) gdb-server BUILD_DIR=$(DEBUG_BUILD_DIR) ISO=$(DEBUG_ISO) CFLAGS='$(DEBUG_CFLAGS)'
+
+# Run in a second terminal after debug-run; do not rebuild a running kernel.
+debug-gdb:
+	gdb $(DEBUG_BUILD_DIR)/kfs.elf \
+		-ex 'set disassembly-flavor intel' \
+		-ex 'target remote localhost:1234' \
+		-ex 'break kmain' \
+		-ex 'continue'
