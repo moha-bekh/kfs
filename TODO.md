@@ -1,83 +1,8 @@
 # KFS-1: Grub, boot and screen
 
-Progress updated: November 12, 2026. Completed items below describe the
-implemented behavior and observed checks; they are not a full subject evaluation.
-
-## General instructions
-
-### EMULATION ### LANGUAGE ### COMPILER ### COMPILER FLAGS ### LINKING
-
-- KVM nasm cc
-- -fno-builtin -fno-exception -fno-stack-protector -fno-rtti -nostdlib -nodefaultlibs
-- GNU linker script + LD
-
-## Mandatory part
-
-### Base
-
-#### Done
-
-- GRUB on image
-- ASM boot code: multiboot header, init and call main the kernel
-- Bootable kernel
-- "42" on the screen.
-- Interface kernel / screen: VGA backend and console buffers.
-- Basic helpers imported and adapted from libft:
-  - Strings and memory: strlen, strcmp, strncmp, memset, memcpy, memmove,
-    memcmp, strchr, strrchr, strlcpy, strlcat, memchr.
-  - ASCII characters: isalpha, isdigit, isalnum, isspace, isprint, isascii,
-    tolower, toupper.
-  - Integer conversions: atoi, atol and the project helper atoi_base.
-  - Helper checks executed in a temporary 32-bit program without libc.
-    Integer conversions require representable input; overflow detection is pending.
-
-#### Remaining checks
-
-- Verify the final kernel size against the 10 MB limit.
-- Review the final submission against the original subject and allowed headers.
-
-## Bonus part
-
-### Done and checked
-
-- Port I/O helpers: inb / outb.
-- Hardware cursor movement, visibility and synchronization with the rendered view.
-- Circular history: 250 lines per screen, with a 25-line view.
-- Scroll up/down, history limits, wraparound and preservation during new output.
-- Resume following output after scrolling back to the bottom.
-- Five independent screens: contents, cursor, history and view preserved.
-- Screen selection by index, with invalid indices rejected.
-- Full screen-buffer initialization with blank grey-on-black cells.
-- VGA character attributes; green and red output checked in the visual scenario.
-- 17 console scenarios passed in QEMU/GDB before the latest helper imports.
-- Visual cursor/navigation and screen-switching scenarios checked by the learner.
-- Console instance is private to console.c; public output functions no longer
-  require a console argument. Color selection is stored per screen.
-- printk supports literal text, %%, %c, %s, %d, %i, %u, %x, %X and %p,
-  using stdarg and returning the emitted character count.
-- 21 current output scenarios passed in QEMU/GDB after the console refactoring:
-  initialization, colors, screen selection, history navigation, formatting,
-  INT_MIN, unsigned limits, pointers, mixed arguments and return count.
-- Earlier console test sources are retained as commented reference; the active
-  suite is test_output_all in src/tests/output.c, called from kmain.
-
-### Next
-
-- Check a combined printk message visually. Decide and test behavior for
-  unsupported formats, a trailing percent sign and null string arguments.
-- Implement PS/2 keyboard input in polling mode: controller status/data,
-  scancodes, press/release events, modifiers and character conversion.
-- Echo keyboard input through the console.
-- Connect keyboard shortcuts to history navigation and screen selection.
-- Re-run the console suite after integration and validate interactive behavior.
-
-### Debugging support
-
-- Separate debug build with symbols and QEMU/GDB Makefile targets.
-- Visual scenarios use console_visual_checkpoint as a GDB breakpoint.
-- Current output tests can be stepped through with a breakpoint on
-  output_test_case; inspect name and use finish to see each result.
-- Compile C code with -mgeneral-regs-only while SIMD state is not configured.
+- Finalize keyboard input: locks, Backspace and Tab.
+- Connect keyboard shortcuts to scrollback and screen selection.
+- Validate keyboard integration, re-run tests and check the final subject requirements.
 
 # KFS-2: GDT & Stack
 
@@ -94,7 +19,7 @@ implemented behavior and observed checks; they are not a full subject evaluation
   - User stack
   - Your work should not exceed 10 MB.
 
-- Declare your GDT to the BIOS (kernel with lgdt).
+- Load the GDT with lgdt and reload the segment registers.
 
 - GDT address 0x00000800
 

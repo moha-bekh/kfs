@@ -3,9 +3,6 @@
 #include "lib/printk.h"
 #include "lib/string.h"
 
-/* printk currently declares signed char rather than char for its format. */
-#define FORMAT(s) ((const int8_t *)(s))
-
 static volatile const t_vga *const video = (volatile const t_vga *)0xB8000;
 
 static bool_t text_is(const char *expected) {
@@ -137,69 +134,69 @@ static bool_t check_history_navigation(void) {
 }
 
 static bool_t check_literal(void) {
-  printk(FORMAT("hello 42"));
+  printk("hello 42");
   return text_is("hello 42");
 }
 
 static bool_t check_percent(void) {
-  printk(FORMAT("a%%b"));
+  printk("a%%b");
   return text_is("a%b");
 }
 
 static bool_t check_character(void) {
-  printk(FORMAT("[%c]"), 'A');
+  printk("[%c]", 'A');
   return text_is("[A]");
 }
 
 static bool_t check_string(void) {
-  printk(FORMAT("[%s]"), "hello");
+  printk("[%s]", "hello");
   return text_is("[hello]");
 }
 
 static bool_t check_signed_decimal(void) {
-  printk(FORMAT("%d|%i|%d"), -42, 17, 0);
+  printk("%d|%i|%d", -42, 17, 0);
   return text_is("-42|17|0");
 }
 
 static bool_t check_signed_min(void) {
-  printk(FORMAT("%d"), (-2147483647 - 1));
+  printk("%d", (-2147483647 - 1));
   return text_is("-2147483648");
 }
 
 static bool_t check_unsigned_decimal(void) {
-  printk(FORMAT("%u"), 4294967295U);
+  printk("%u", 4294967295U);
   return text_is("4294967295");
 }
 
 static bool_t check_unsigned_zero(void) {
-  printk(FORMAT("%u"), 0U);
+  printk("%u", 0U);
   return text_is("0");
 }
 
 static bool_t check_hexadecimal(void) {
-  printk(FORMAT("%x|%X"), 0xDEADBEEFU, 0xABCDU);
+  printk("%x|%X", 0xDEADBEEFU, 0xABCDU);
   return text_is("deadbeef|ABCD");
 }
 
 static bool_t check_hexadecimal_zero(void) {
-  printk(FORMAT("%x|%X"), 0U, 0U);
+  printk("%x|%X", 0U, 0U);
   return text_is("0|0");
 }
 
 static bool_t check_pointers(void) {
   /* These addresses are formatted only, never dereferenced. */
-  printk(FORMAT("%p|%p"), (void *)0, (void *)(uintptr_t)0x1234);
+  printk("%p|%p", (void *)0, (void *)(uintptr_t)0x1234);
   return text_is("(nil)|0x1234");
 }
 
 static bool_t check_mixed_arguments(void) {
-  printk(FORMAT("%c:%s:%d:%u:%x"), 'A', "BC", -12, 34U, 0x56U);
+  printk("%c:%s:%d:%u:%x", 'A', "BC", -12, 34U, 0x56U);
   return text_is("A:BC:-12:34:56");
 }
 
 static bool_t check_return_count(void) {
   /* Chosen contract: return the number of emitted characters. */
-  int count = printk(FORMAT("a%%:%d"), 42);
+  int count = printk("a%%:%d", 42);
   return text_is("a%:42") && count == 5;
 }
 

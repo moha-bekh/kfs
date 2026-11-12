@@ -1,89 +1,110 @@
 # KFS — Kernel From Scratch
 
-An educational i386 kernel project written in C and assembly. It boots using GRUB and Multiboot 2; the VGA text display and console are under development.
+Educational i386 kernel in C and NASM, booted by BIOS GRUB with Multiboot 2.
+KFS-1 console and printk are implemented; keyboard integration is in progress.
+The current kmain initializes the console and polls PS/2 input.
 
-## Dependencies
+## Environment
 
-- `make`, a C compiler capable of producing i386 code, `nasm`, and GNU `ld`
-- GRUB (`grub-mkrescue`, `i386-pc` modules, `grub-file`), `xorriso`, and `mtools`
-- QEMU x86 with a GTK interface; GDB for debugging
+The development setup uses macOS for editing and the amd64 OrbStack VM
+`arch-kfs` for compiling and running QEMU. The project directory is shared:
+no project-copy step is needed between edits and builds.
 
-On Arch Linux, the packages used are `make`, `gcc`, `binutils`, `nasm`, `grub`, `xorriso`, `mtools`, `qemu-system-x86`, `qemu-ui-gtk`, and `gdb`.
+Build dependencies: make, an i386-capable C compiler, NASM, GNU ld, GRUB
+(grub-mkrescue or grub2-mkrescue, i386-pc modules, grub-file), xorriso and mtools.
+Running/debugging also uses qemu-system-i386, GDB and telnet for the monitor.
+The default display is curses; GTK is optional and needs a graphical session.
 
-## Commands
+## Build and run
+
+Run these commands inside Linux, or prefix them with `orb -m arch-kfs` from
+the project directory on macOS.
 
 ```sh
-make build            # compile and link build/kfs.elf
-make                  # build the image and run QEMU
-make run              # build the image if needed and run QEMU
-make check-multiboot  # check the existing ELF
-make gdb-server       # run QEMU paused for a GDB connection
-make monitor          # open the QEMU monitor of a running instance (telnet :4444)
+make build            # compile/link build/kfs.elf
+make                  # build the ISO and start QEMU
+make run              # update the ISO if needed and start QEMU
+make check-multiboot  # check the existing ELF's Multiboot 2 header
+make monitor          # connect to the running QEMU monitor on port 4444
 make clean            # remove build/
 make fclean           # also remove kfs.iso
 ```
 
-Without a graphical session (e.g. a VM), pick another QEMU display:
-`make run QEMU_DISPLAY=curses` (VGA text in the terminal). Quit from another
-terminal with `make monitor` then `quit`. See `docs/MAKEFILE_EDIT.md`.
+Select a display with `make run QEMU_DISPLAY=curses`, `QEMU_DISPLAY=gtk`
+or `QEMU_DISPLAY=vnc=:0`. In a second terminal, `make monitor` then `quit`
+stops QEMU. To inject keys that curses or the host terminal does not deliver,
+use `sendkey shift-a` or `sendkey ctrl` in that monitor.
 
-For C source debugging, use two terminals from the project directory. With
-OrbStack, run these commands from macOS:
+Normal clean targets do not remove build-debug/ or other custom build folders.
+The current .gitignore ignores build/, *.o and *.iso; custom build directories
+can still contain untracked ELF and dependency files. Do not commit generated
+artifacts.
+
+## Source debugging
+
+Stop the previous QEMU before rebuilding. From macOS, use two terminals:
 
 ```sh
-orb -m arch-kfs make debug-run  # terminal 1: rebuild with -g -O0, start paused
-orb -m arch-kfs make debug-gdb  # terminal 2: connect and stop in kmain
+orb -m arch-kfs make debug-run  # rebuild with -g -O0 and boot paused
+orb -m arch-kfs make debug-gdb  # connect and stop in kmain
 ```
 
-Inside Linux, use `make debug-run` and `make debug-gdb` directly. Debug files
-are stored in `build-debug/`, including a separate ISO. `make debug-build`
-only builds that image; it forces recompilation to ensure debug symbols exist.
-Stop QEMU before rebuilding. In GDB, use `list` and `next`. The current
-`kmain` runs `test_output_all`; after the call returns, inspect `print res`
-or `print res.all_passed`. The suite contains 21 scenarios for the console
-and printk. `make gdb-server` remains available for the regular build,
-which does not enable C debug information by default.
+Inside Linux, use `make debug-run` and `make debug-gdb` directly.
+`make debug-build` only builds; debug output and its ISO live in build-debug/.
+`make gdb-server` uses the regular build, which has no C debug information by
+default. See [Makefile notes](docs/MAKEFILE_EDIT.md).
 
-To inspect each scenario separately, set `break output_test_case` before
-running the suite. At each stop, `print name` identifies the scenario and
-`finish` executes it and reports its result. Use `continue` for the next case.
-Use Ctrl+C if execution does not return; `bt` shows the current call stack.
+In GDB, `n` executes the displayed line without entering its calls, `s` enters
+calls, `finish` runs until the current function returns, and `bt` shows frames.
+Inspect local results only after initialization and in their owning frame.
+Ctrl+C interrupts the guest and restores the prompt. To reboot the same image:
 
-## Layout
-
-Active output scenarios live in `src/tests/output.c`, with declarations in
-`include/tests/output.h`. Each case initializes the private console instance.
-Tests check rendered VGA cells, formatting and return counts. Cursor appearance
-still requires observation in QEMU. The earlier console scenarios in
-`src/tests/console.c` are retained as commented reference for the old API.
-
-One directory per subsystem in `src/`, mirrored in `include/` (`src/mm/paging.c`
-↔ `include/mm/paging.h`, included as `"mm/paging.h"`). See `docs/ARCHITECTURE.md`.
-Every planned module of KFS-1 to KFS-5 exists as a skeleton already listed in the
-Makefile; each file's header comment states its KFS, role and dependencies.
-
-```
-src/
-  boot/      boot.s (entry, Multiboot 2 header), multiboot.c     KFS-1, 3
-  kernel/    main.c (kmain), panic.c, signal.c, syscall.c        KFS-1, 3, 4
-  console/   console.c (screens, scrollback)                     KFS-1
-  lib/       string.c, printk.c                                  KFS-1
-  drivers/   vga.c, keyboard.c, pic.c, pit.c                     KFS-1, 4
-  cpu/       gdt.c, gdt_flush.s, idt.c, isr.s, exceptions.c      KFS-2, 4
-  debug/     stack.c, memdump.c                                  KFS-2, 3
-  shell/     shell.c                                             KFS-2 bonus
-  mm/        pmm.c, paging.c, kmalloc.c, vmalloc.c               KFS-3
-  proc/      process.c, proc_signal.c, socket.c, sched.c,
-             exec.c, switch.s                                    KFS-5
-include/     <subsystem>/<module>.h mirroring src/; at the root only the
-             cross-cutting types.h and io.h (port I/O)
-link/        linker.ld
-grub/        grub.cfg
+```gdb
+monitor system_reset
+continue
 ```
 
-- `TODO.md`: objectives per KFS (extracted from the subjects)
-- `docs/ARCHITECTURE.md`: tree layout, conventions and rationale
-- `docs/ROADMAP.md`: module dependency graph and what can be started now
-- `docs/PROGRESS.md`, `docs/LEARNING.md`: progress and learning guidelines
-- `docs/MAKEFILE_EDIT.md`: history of Makefile changes
-- `build/`: generated intermediate files; `kfs.iso`: generated QEMU image
+## Tests
+
+The tests are compiled into the kernel but are not run by the current polling
+loop. Temporarily place these calls in kmain before that loop:
+
+```c
+#include "tests/output.h"
+#include "tests/console.h"
+
+/* Inside kmain, before keyboard polling. */
+t_output_test_results output = test_output_all();
+t_console_test_results screens = test_console_all();
+(void)output;
+(void)screens;
+```
+
+After both calls return, inspect `p output` and `p screens` in GDB.
+Each suite has an all_passed field: 21 output/printk cases and 17 console cases.
+Output cases inspect rendered VGA cells; history cases exercise screen_*
+functions on a static fixture. The live console instance stays private.
+
+For individual cases, use `break output_test_case` or `break console_test_case`.
+At each stop, `p name` identifies the case and `finish` reports its result;
+`continue` reaches the next one.
+
+For visual screen switching, call `test_console_screens_visual()` and set
+`break console_visual_checkpoint`. At each stop the screen has already rendered;
+inspect `stage`, then continue. Visual history navigation awaits a public scroll
+interface for the live console. Keyboard decoder checks so far were temporary
+harnesses, not a persistent repository test suite.
+
+## Files
+
+- src/ and include/: matching subsystem implementations and public interfaces.
+  lib/ contains string, ctype, stdlib and printk; tests/ contains both suites.
+- link/linker.ld: kernel image layout; grub/grub.cfg: boot menu.
+- [TODO.md](TODO.md): remaining objectives per KFS.
+- [PROGRESS.md](docs/PROGRESS.md): concrete implementation and validation state.
+- [ARCHITECTURE.md](docs/ARCHITECTURE.md): structure and current runtime.
+- [ROADMAP.md](docs/ROADMAP.md): subsystem dependencies and later KFS sequence.
+- [LEARNING.md](docs/LEARNING.md): tutoring approach; [AGENTS.md](AGENTS.md): agent rules.
+
+Later KFS subsystems exist as skeletons listed in Makefile. The original subject
+PDFs are not present; TODO.md is a working summary, not the authoritative subject.

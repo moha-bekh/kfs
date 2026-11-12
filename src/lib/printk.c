@@ -49,7 +49,7 @@ static void putptr(uintptr_t ptr, uint32_t *len) {
     putchar(mod - 10 + 'a', len);
 }
 
-static void put_format(va_list *args, const int8_t *format, uint32_t *index,
+static void put_format(va_list *args, const char *format, uint32_t *index,
                        uint32_t *len) {
 
   switch (format[++(*index)]) {
@@ -144,7 +144,7 @@ static void put_format(va_list *args, const int8_t *format, uint32_t *index,
   }
 }
 
-int printk(const int8_t *format, ...) {
+int printk(const char *format, ...) {
 
   va_list args;
   va_start(args, format);
@@ -164,6 +164,7 @@ int printk(const int8_t *format, ...) {
     }
   }
 
+  console_render_screen();
   va_end(args);
   return len;
 }

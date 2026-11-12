@@ -1,71 +1,69 @@
-# KFS — Module map and dependencies
+# KFS — Module dependencies
 
-Every module below exists as an empty skeleton (`src/...` + `include/...`),
-already listed in the Makefile, so the kernel builds at every step. The header
-comment of each file states its KFS, role, dependencies and what it unlocks.
+Current implementation and validation: [PROGRESS.md](PROGRESS.md).
+Remaining objectives per KFS: [TODO.md](../TODO.md).
+This file describes dependencies, not a second task list.
 
-## Dependency graph
+## Current foundation
 
-`A --> B` means "B needs A".
+Boot, port I/O, VGA, console, helpers and printk are implemented.
+The PS/2 polling decoder is implemented for ordinary set 1 keys and selected
+extended keys; keyboard integration is still being completed.
+The later subsystems exist as skeletons in src/ and include/, listed in Makefile.
+
+## Dependencies
+
+An arrow means the target uses or builds on the source. Later-module edges
+show the planned design, not implemented behavior.
 
 ```mermaid
 graph LR
-  string[lib/string] --> printk
+  io[io.h] --> vga
+  vga --> console
   console --> printk
-  io[io.h] --> keyboard
-  io --> pic
-  io --> pit
-
-  printk --> stack[debug/stack]
+  io --> polling[PS/2 polling]
+  polling --> keyboard[Keyboard decoder]
+  keyboard --> console
+  printk --> stack[Stack inspection]
   printk --> panic
   printk --> memdump
-  gdt --> idt
-  isr[isr.s] --> idt
-  stack --> panic
   keyboard --> shell
   stack --> shell
-
-  multiboot --> pmm --> paging
-  paging --> kmalloc
-  paging --> vmalloc
-
+  gdt --> idt
+  isr --> idt
   idt --> exceptions
   panic --> exceptions
-  idt --> pic_irq[IRQs]
-  pic --> pic_irq
-  pic_irq --> keyboard_irq[keyboard IRQ1]
-  keyboard --> keyboard_irq
-  pic_irq --> pit
+  io --> pic
+  io --> pit
+  idt --> irq[IRQ handling]
+  pic --> irq
+  irq --> keyboard_irq[Keyboard IRQ reception]
+  keyboard_irq --> keyboard
+  irq --> pit
   idt --> syscall
-  ksignal[kernel/signal] --> proc_signal
-
+  multiboot[Multiboot memory map] --> pmm
+  pmm --> paging
+  paging --> kmalloc
+  paging --> vmalloc
+  kmalloc --> process
   vmalloc --> process
-  process --> proc_signal
-  pit --> proc_signal
-  process --> socket
-  process --> sched
   pit --> sched
-  switch[switch.s] --> sched
+  process --> sched
+  switch[Assembly context switch] --> sched
+  process --> proc_signal[Process signals]
+  ksignal[Kernel signal callbacks] --> proc_signal
+  process --> socket
   sched --> exec
 ```
 
-## Can be started now (no missing dependency)
+## Sequence after KFS-1
 
-| Module | KFS | Notes |
-|---|---|---|
-| console fixes | 1 | foundation of all later output |
-| `lib/string` | 1 | |
-| `io.h` | 1/4 | needed by keyboard, pic, pit |
-| `drivers/keyboard` (polling) | 1 bonus | decoder reused unchanged by the KFS-4 IRQ handler |
-| `cpu/gdt` + `gdt_flush.s` | 2 | |
-| `boot/multiboot` | 3 | needs `boot.s` to pass `eax`/`ebx` to the kernel |
-| `kernel/signal` (callback registry) | 4 | scheduling part needs pit/idt |
-| `drivers/pic` | 4 | writable now, testable only with the IDT |
+1. KFS-2: GDT and stack inspection, then the optional shell.
+2. KFS-3: preserve Multiboot information, discover physical memory, then paging
+   and allocators.
+3. KFS-4: IDT, exceptions, PIC/IRQs and timer; reuse the keyboard decoder with
+   IRQ reception. Add kernel signals and syscall entry.
+4. KFS-5: processes and scheduling on top of memory management, interrupts
+   and context switching.
 
-## Unlocked next
-
-- after `printk`: `debug/stack`, `kernel/panic`, `debug/memdump`
-- after `multiboot`: `mm/pmm`, then `mm/paging`, then `kmalloc` / `vmalloc`
-- after `gdt`: `cpu/idt` + `isr.s`, then `exceptions`, IRQs, `pit`, `syscall`
-- after `keyboard` + `stack`: `shell`
-- KFS-5 needs paging (KFS-3) **and** pit/IRQs (KFS-4)
+The exact requirements remain those of the original subjects.
