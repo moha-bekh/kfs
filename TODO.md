@@ -1,8 +1,7 @@
 # KFS-1: Grub, boot and screen
 
-- Finalize keyboard input: locks, Backspace and Tab.
-- Connect keyboard shortcuts to scrollback and screen selection.
-- Validate keyboard integration, re-run tests and check the final subject requirements.
+- Validate keypad/navigation through QEMU sendkey; automated suites inject decoder bytes directly.
+- Check the original KFS-1 subject and bonus requirements against the implementation.
 
 # KFS-2: GDT & Stack
 

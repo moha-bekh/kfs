@@ -25,6 +25,8 @@
 #define PS2_SC_L_CTRL 0x1D
 #define PS2_SC_L_ALT 0x38
 #define PS2_SC_CAPS_LOCK 0x3A
+#define PS2_SC_NUM_LOCK 0x45
+#define PS2_SC_SCROLL_LOCK 0x46
 
 /* Second byte of E0-prefixed make sequences, not standalone scancodes.
  * Example: right Ctrl press = E0 1D, release = E0 9D.
@@ -48,7 +50,7 @@
 
 /* US QWERTY, set 1 make codes without E0/E1 prefixes.
  * Zero entries do not produce a character. Release events must not emit text.
- * Keypad digits are omitted until Num Lock is handled.
+ * Keypad digits use a separate table controlled by Num Lock and Shift.
  */
 
 enum e_mod {
@@ -65,6 +67,8 @@ enum e_mod {
   LOCK_SCROLL = 0x400
 };
 
+/* Reset decoder state before a fresh input stream or an isolated test. */
+void kb_reset(void);
 void kb_ps2_decode(uint8_t scan_code);
 
 #endif /* DRIVERS_KEYBOARD_H */

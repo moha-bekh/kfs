@@ -122,6 +122,35 @@ void console_reset_color(void) {
   screen->color = VGA_ATTR_GREY_BLACK;
 }
 
+
+void console_scroll_up(void) {
+
+  t_screen *screen = &console.screens[console.screen_select];
+  screen_scroll_up(screen);
+  console_render_screen();
+}
+
+void console_scroll_down(void) {
+
+  t_screen *screen = &console.screens[console.screen_select];
+  screen_scroll_down(screen);
+  console_render_screen();
+}
+
+void console_scroll_home(void) {
+  t_screen *screen = &console.screens[console.screen_select];
+  screen->view_start = screen->line_old;
+  console_render_screen();
+}
+
+void console_scroll_end(void) {
+  t_screen *screen = &console.screens[console.screen_select];
+  /* The history has a fixed capacity, so this loop is bounded. */
+  for (uint16_t i = 0; i < CELL_ROW; i++)
+    screen_scroll_down(screen);
+  console_render_screen();
+}
+
 void console_putc(char c) {
 
   t_screen *screen = &console.screens[console.screen_select];
@@ -130,6 +159,17 @@ void console_putc(char c) {
 
   if (cell._char == '\n') {
     screen_new_line(screen);
+    return;
+  } else if (cell._char == '\b') {
+    if (screen->cursor.col == 0)
+      return ;
+    t_vga blank = {._char = ' ', .attr = screen->color};
+    screen->cells[screen->cursor.row][--screen->cursor.col] = blank;
+    return ;
+  } else if (cell._char == '\t') {
+    uint8_t n = 4 - (screen->cursor.col % 4);
+    for (uint8_t i = 0; i < n; i++)
+      console_putc(' ');
     return;
   }
 

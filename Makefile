@@ -36,6 +36,7 @@ C_SRC = \
 	src/console/console.c \
 	src/tests/console.c \
 	src/tests/output.c \
+	src/tests/keyboard.c \
 	src/drivers/vga.c \
 	src/lib/string.c \
 	src/lib/ctype.c \
@@ -171,3 +172,8 @@ debug-gdb:
 		-ex 'target remote localhost:1234' \
 		-ex 'break kmain' \
 		-ex 'continue'
+
+# Run all suites in a temporary, headless QEMU instance with GDB assertions.
+.PHONY: test
+test:
+	python3 scripts/test.py

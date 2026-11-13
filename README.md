@@ -66,34 +66,35 @@ continue
 
 ## Tests
 
-The tests are compiled into the kernel but are not run by the current polling
-loop. Temporarily place these calls in kmain before that loop:
+All three suites run in kmain before keyboard polling: 17 console cases,
+21 output/printk cases and 24 keyboard/console integration cases. The keyboard
+suite feeds set 1 bytes directly to the decoder, then checks rendered VGA cells.
+It covers modifiers, locks and repeats, keypad, prefixes, screen shortcuts,
+history navigation, Backspace and Tab. It resets the decoder and console afterward.
 
-```c
-#include "tests/output.h"
-#include "tests/console.h"
+Run all 62 cases automatically in a separate headless QEMU guest:
 
-/* Inside kmain, before keyboard polling. */
-t_output_test_results output = test_output_all();
-t_console_test_results screens = test_console_all();
-(void)output;
-(void)screens;
+```sh
+orb -m arch-kfs make test
 ```
 
-After both calls return, inspect `p output` and `p screens` in GDB.
-Each suite has an all_passed field: 21 output/printk cases and 17 console cases.
-Output cases inspect rendered VGA cells; history cases exercise screen_*
-functions on a static fixture. The live console instance stays private.
+This builds a temporary debug ISO, checks Multiboot 2, runs the suites through
+GDB and exits unsuccessfully if a suite fails. It leaves the interactive VM and
+existing build directories alone. Python 3 is required in addition to the build,
+QEMU and GDB tools.
 
-For individual cases, use `break output_test_case` or `break console_test_case`.
-At each stop, `p name` identifies the case and `finish` reports its result;
-`continue` reaches the next one.
+For interactive debugging, use the debug targets above. In kmain, step past the
+three suite calls and inspect `console_results`, `output_results` and
+`keyboard_results`; every structure has an `all_passed` field.
+Use `break keyboard_test_case` (or `console_test_case` / `output_test_case`),
+then `p name`, `finish` and `continue` to inspect individual cases.
 
 For visual screen switching, call `test_console_screens_visual()` and set
 `break console_visual_checkpoint`. At each stop the screen has already rendered;
-inspect `stage`, then continue. Visual history navigation awaits a public scroll
-interface for the live console. Keyboard decoder checks so far were temporary
-harnesses, not a persistent repository test suite.
+inspect `stage`, then continue. Tests inject bytes directly: physical keyboard
+transport and terminal key interception still need manual `sendkey` validation.
+Scroll Lock currently has no visible effect; its case checks that its events do
+not emit text, rather than observing its private state.
 
 ## Files
 

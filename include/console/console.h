@@ -51,6 +51,11 @@ void console_render_screen(void);
 void console_set_color(uint8_t fg, uint8_t bg);
 void console_reset_color(void);
 
+void console_scroll_up(void);
+void console_scroll_down(void);
+void console_scroll_home(void);
+void console_scroll_end(void);
+
 void console_putc(char c);
 void console_putstr(const char *str);
 

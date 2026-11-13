@@ -11,6 +11,8 @@
 
 #include "drivers/keyboard.h"
 #include "types.h"
+#include "lib/ctype.h"
+#include "console/console.h"
 
 /* US QWERTY mapping for simple set 1 make codes; not a scancode decoder. */
 const char keyboard_qwerty[PS2_KEYMAP_SIZE] = {
@@ -27,8 +29,7 @@ const char keyboard_qwerty[PS2_KEYMAP_SIZE] = {
     [0x35] = '/',    [0x37] = '*', [0x39] = ' ',  [0x4A] = '-',  [0x4E] = '+',
 };
 
-/* Shift changes letters and punctuation; Caps Lock is handled by the decoder.
- */
+/* Shift changes letters and punctuation; Caps Lock is handled by the decoder. */
 const char keyboard_qwerty_shift[PS2_KEYMAP_SIZE] = {
     [0x01] = '\x1B', [0x02] = '!', [0x03] = '@',  [0x04] = '#',  [0x05] = '$',
     [0x06] = '%',    [0x07] = '^', [0x08] = '&',  [0x09] = '*',  [0x0A] = '(',
@@ -43,9 +44,18 @@ const char keyboard_qwerty_shift[PS2_KEYMAP_SIZE] = {
     [0x35] = '?',    [0x37] = '*', [0x39] = ' ',  [0x4A] = '-',  [0x4E] = '+',
 };
 
+/* Simple set 1 keypad codes; operators and Enter use their existing paths. */
+static const char keyboard_keypad[PS2_KEYMAP_SIZE] = {
+    [0x47] = '7', [0x48] = '8', [0x49] = '9',
+    [0x4B] = '4', [0x4C] = '5', [0x4D] = '6',
+    [0x4F] = '1', [0x50] = '2', [0x51] = '3',
+    [0x52] = '0', [0x53] = '.',
+};
+
 static uint16_t mods;
 static bool_t e0_pending;
 static uint8_t pause_remaining;
+static uint16_t locks_down;
 
 /* Separate maps: the same base code can name different left/right keys. */
 static const uint16_t normal_modifiers[PS2_KEYMAP_SIZE] = {
@@ -62,8 +72,14 @@ static const uint16_t extended_modifiers[PS2_KEYMAP_SIZE] = {
     [PS2_SC_E0_R_SUPER] = R_SUPER,
 };
 
-static bool_t kb_update_modifier(uint8_t code, bool_t extended,
-                                 bool_t released) {
+static const uint16_t lock_keys[PS2_KEYMAP_SIZE] = {
+    [PS2_SC_CAPS_LOCK] = LOCK_CAPS,
+    [PS2_SC_NUM_LOCK] = LOCK_NUM,
+    [PS2_SC_SCROLL_LOCK] = LOCK_SCROLL,
+};
+
+static bool_t kb_update_modifier(uint8_t code, bool_t extended, bool_t released) {
+
   uint16_t mask = extended ? extended_modifiers[code] : normal_modifiers[code];
   if (!mask)
     return FALSE;
@@ -75,37 +91,53 @@ static bool_t kb_update_modifier(uint8_t code, bool_t extended,
 }
 
 static void kb_decode_extended(uint8_t code, bool_t released) {
+
   if (released)
     return;
 
   switch (code) {
-  case PS2_SC_E0_KEYPAD_ENTER:
-    printk("%c", '\n');
-    break;
-  case PS2_SC_E0_KEYPAD_SLASH:
-    printk("%c", '/');
-    break;
-  case PS2_SC_E0_HOME:
-  case PS2_SC_E0_UP:
-  case PS2_SC_E0_PAGE_UP:
-  case PS2_SC_E0_LEFT:
-  case PS2_SC_E0_RIGHT:
-  case PS2_SC_E0_END:
-  case PS2_SC_E0_DOWN:
-  case PS2_SC_E0_PAGE_DOWN:
-  case PS2_SC_E0_INSERT:
-  case PS2_SC_E0_DELETE:
-    /* Navigation actions will be connected to the console later. */
-    break;
-  default:
-    /* Unsupported extended keys must never fall through to QWERTY.
-     * This also ignores the fake Shift bytes in Print Screen sequences.
-     */
-    break;
+    case PS2_SC_E0_KEYPAD_ENTER:
+      printk("%c", '\n');
+      break;
+    case PS2_SC_E0_KEYPAD_SLASH:
+      printk("%c", '/');
+      break;
+    case PS2_SC_E0_HOME:
+      console_scroll_home();
+      break;
+    case PS2_SC_E0_END:
+      console_scroll_end();
+      break;
+    case PS2_SC_E0_UP:
+    case PS2_SC_E0_PAGE_UP:
+      console_scroll_up();
+      break;
+    case PS2_SC_E0_DOWN:
+    case PS2_SC_E0_PAGE_DOWN:
+      console_scroll_down();
+      break;
+    case PS2_SC_E0_LEFT:
+    case PS2_SC_E0_RIGHT:
+    case PS2_SC_E0_INSERT:
+    case PS2_SC_E0_DELETE:
+      /* Horizontal editing and insert/delete modes are not implemented. */
+      break;
+    default:
+      /*  Unsupported extended keys must never fall through to QWERTY.
+          This also ignores the fake Shift bytes in Print Screen sequences. */
+      break;
   }
 }
 
+void kb_reset(void) {
+  mods = 0;
+  locks_down = 0;
+  e0_pending = FALSE;
+  pause_remaining = 0;
+}
+
 void kb_ps2_decode(uint8_t scan_code) {
+
   /* Pause has a six-byte set 1 sequence. Consume it without an action for now.
    * This assumes a complete sequence; malformed-stream recovery is not handled.
    */
@@ -135,11 +167,68 @@ void kb_ps2_decode(uint8_t scan_code) {
     kb_decode_extended(code, released);
     return;
   }
+
+  uint16_t lock = lock_keys[code];
+  if (lock) {
+    if (released) {
+      locks_down &= ~lock;
+    } else if (!(locks_down & lock)) {
+      mods ^= lock;
+      locks_down |= lock;
+    }
+    /* Scroll Lock is tracked only; it does not freeze console output. */
+    return;
+  }
+
   if (released)
     return;
 
-  char key = (mods & (L_SHIFT | R_SHIFT)) ? keyboard_qwerty_shift[code]
-                                         : keyboard_qwerty[code];
+  char keypad_key = keyboard_keypad[code];
+  if (keypad_key) {
+    bool_t numeric = ((mods & LOCK_NUM) != 0) ^
+                     ((mods & (L_SHIFT | R_SHIFT)) != 0);
+    if (numeric)
+      printk("%c", keypad_key);
+    else
+      kb_decode_extended(code, FALSE);
+    return;
+  }
+
+  bool_t shift = (mods & (L_SHIFT | R_SHIFT)) != 0;
+  bool_t caps = (mods & LOCK_CAPS) != 0;
+
+  char key = shift ? keyboard_qwerty_shift[code] : keyboard_qwerty[code];
+
+  if (key >= '1' && key <= '5' && (mods & (L_SUPER | R_SUPER))) {
+    switch (key) {
+      case '1':
+        console_select_screen(0);
+        break;
+      case '2':
+        console_select_screen(1);
+        break;
+      case '3':
+        console_select_screen(2);
+        break;
+      case '4':
+        console_select_screen(3);
+        break;
+      case '5':
+        console_select_screen(4);
+        break;
+      default:
+        break;
+    }
+    console_render_screen();
+    return ;
+  }
+
+  if (isalpha(key) && caps) {
+    if (shift)
+      key |= 0x20;
+    else
+      key &= ~0x20;
+  }
   if (key)
     printk("%c", key);
 }
